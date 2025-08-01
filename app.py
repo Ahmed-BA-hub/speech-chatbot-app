@@ -46,6 +46,10 @@ def start_recording():
     st.info("🎙️ Listening... speak now and press STOP when done.")
 
 def stop_recording():
+    if IS_CLOUD:
+        st.warning("❌ Microphone not supported on Streamlit Cloud.")
+        return
+
     st.session_state.recording = False
     recognizer = sr.Recognizer()
     with sr.Microphone() as source:
