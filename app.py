@@ -1,31 +1,27 @@
 import streamlit as st
+import speech_recognition as sr
 import nltk
 from nltk.chat.util import Chat, reflections
 from nltk.tokenize import sent_tokenize
 import random
 import os
-import platform
 
-# Determine if microphone should be used
-IS_CLOUD = platform.system() == "Linux" and os.environ.get("HOME", "").startswith("/home/adminuser")
-
-# Optional: Only import speech recognition locally
-if not IS_CLOUD:
-    import speech_recognition as sr
-
-# Download NLTK tokenizer
+# Download tokenizer if not found
 try:
     nltk.data.find("tokenizers/punkt")
 except LookupError:
     nltk.download("punkt")
 
-# Load corpus
+# Check if running on Streamlit Cloud
+IS_CLOUD = os.environ.get("STREAMLIT_SERVER_HEADLESS", "") == "1"
+
+# Load chatbot corpus
 with open("chatbot.txt", "r", encoding="utf-8") as file:
     corpus = file.read()
 
 sent_tokens = sent_tokenize(corpus)
 
-# Chat patterns
+# Chatbot rules
 pairs = [
     [r"hi|hello|hey", ["Hello!", "Hi there!", "Hey! How can I help?"]],
     [r"how are you", ["I'm a bot, but I'm functioning perfectly!"]],
@@ -44,16 +40,13 @@ if "recording" not in st.session_state:
 if "audio_data" not in st.session_state:
     st.session_state.audio_data = None
 
-# Start/stop functions
+# Speech functions
 def start_recording():
     st.session_state.recording = True
     st.info("🎙️ Listening... speak now and press STOP when done.")
 
 def stop_recording():
     st.session_state.recording = False
-    if IS_CLOUD:
-        st.session_state.audio_data = "🎤 Microphone is disabled on Streamlit Cloud."
-        return
     recognizer = sr.Recognizer()
     with sr.Microphone() as source:
         st.info("🔈 Capturing audio... Please speak clearly.")
@@ -68,19 +61,22 @@ def stop_recording():
         except sr.RequestError:
             st.session_state.audio_data = "Speech recognition service failed."
 
-# Chat logic
+# Chatbot logic
 def chatbot_response(user_input):
     if not user_input.strip():
         return "I didn't catch that. Can you say it again?"
+
     response = chatbot.respond(user_input)
+
     if not response or response.strip() == "":
         for sentence in sent_tokens:
             if user_input.lower() in sentence.lower():
                 return sentence
         return random.choice(sent_tokens)
+    
     return response
 
-# ----------- UI ------------
+# ---------------- UI ----------------
 st.title("🧠 Speech-Enabled Chatbot")
 st.write("Talk or type to chat with the bot.")
 
@@ -92,7 +88,7 @@ if input_type == "Text":
 
 elif input_type == "Speech":
     if IS_CLOUD:
-        st.warning("🎙️ Microphone is not supported on Streamlit Cloud. Please use Text input.")
+        st.warning("🚫 Microphone is disabled on Streamlit Cloud. Please use text input.")
     else:
         col1, col2 = st.columns(2)
         with col1:
