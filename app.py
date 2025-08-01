@@ -5,6 +5,7 @@ from nltk.chat.util import Chat, reflections
 from nltk.tokenize import sent_tokenize
 import random
 import platform
+nltk.download("punkt")
 
 # Ensure NLTK punkt tokenizer is available
 try:
